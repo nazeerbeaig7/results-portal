@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>ECET Results Portal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <img src="logo.png" alt="College Logo" class="logo" />
+      <div>
+        <h1>Eluru College of Engineering and Technology</h1>
+        <p>II B.Tech I Semester Results Portal</p>
+      </div>
+    </header>
+
+<div class="card search">
+  <!-- Result selection -->
+  <div class="select-wrap">
+    <select id="pdfSelect" class="pdf-select">
+        <option value="results2.pdf"> 3_1 Sem (Nov 2025)</option>
+      <option value="results1.pdf"> 2_1 Sem (Nov 2025)</option>
+      
+    </select>
+    <span class="select-arrow">▾</span>
+  </div>
+
+  <!-- Hall ticket input (NOW IN THE MIDDLE) -->
+  <input
+    id="hall"
+    type="text"
+    placeholder="Enter Hall Ticket Number (e.g., 24JD1A0201)"
+  />
+
+  <!-- Search button at bottom -->
+  <button id="btn">Search</button>
+
+  <small id="hint">Tip: Use full hall ticket number</small>
+</div>
+
+    <div id="error" class="error hidden"></div>
+
+    <div id="resultWrap" class="card hidden">
+  <div class="student-head">
+    <div>
+  <strong>Hall Ticket:</strong> <span id="htShow"></span><br />
+      <div class="status-block">
+  <div>
+    <strong>Status:</strong> <span id="statusBadge" class="badge"></span>
+  </div>
+  <div class="counts">
+    <span>✅ Cleared: <strong id="clearedCount">0</strong></span>
+    <span>❌ Failed: <strong id="failedCount">0</strong></span>
+  </div>
+</div>
+
+    </div>
+    <div class="actions">
+      <button id="printBtn" class="btn-outline">🖨️ Print / Download</button>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Sub Code</th>
+          <th>Subject Name</th>
+          <th>Internals</th>
+          <th>Grade</th>
+          <th>Credits</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+
+  <script src="script.js"></script>
+</body>
+</html>
