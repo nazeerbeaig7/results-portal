@@ -499,4 +499,13 @@ tbody tr:hover { background: #020617; }
   color: #7dd3fc;
   transform: translateY(-2px) scale(1.05);
 }
+.summary {
+  margin-top: 8px;
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 0.95rem;
+  color: #e5e7eb;
+}
+
 
