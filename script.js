@@ -142,51 +142,87 @@ function search() {
 
   htShow.textContent = hall;
 
-  let cleared = 0;
-  let failed = 0;
+let cleared = 0;
+let failed = 0;
+let totalCredits = 0;
+let totalPoints = 0;
 
-  rows.forEach((r, idx) => {
-    // Count cleared / failed
-    if (r.grade === "F" || r.grade === "ABSENT") {
-      failed++;
-    } else {
-      cleared++;
-    }
+// Grade to points map
+const gradePoints = {
+  "S": 10,
+  "A": 9,
+  "B": 8,
+  "C": 7,
+  "D": 6,
+  "E": 5,
+  "F": 0,
+  "ABSENT": 0,
+  "COMPLE": 0
+};
 
-    const tr = document.createElement("tr");
-    tr.style.opacity = 0;
-    tr.innerHTML = `
-      <td>${r.subcode}</td>
-      <td>${r.subname}</td>
-      <td>${r.internals}</td>
-      <td>${r.grade}</td>
-      <td>${r.credits}</td>
-    `;
-    tbody.appendChild(tr);
 
-    // Staggered row animation
-    setTimeout(() => {
-      tr.style.transition = "opacity 0.3s ease, transform 0.3s ease";
-      tr.style.opacity = 1;
-      tr.style.transform = "translateY(0)";
-    }, idx * 60);
-  });
+rows.forEach((r, idx) => {
+  const grade = r.grade.toUpperCase();
+  const credits = parseFloat(r.credits) || 0;
 
-  // Update counts
-  clearedCountEl.textContent = cleared;
-  failedCountEl.textContent = failed;
-
-  // Overall status
-  if (failed > 0) {
-    statusBadge.textContent = "FAIL";
-    statusBadge.className = "badge fail";
+  // Count cleared / failed
+  if (grade === "F" || grade === "ABSENT") {
+    failed++;
   } else {
-    statusBadge.textContent = "PASS";
-    statusBadge.className = "badge pass";
+    cleared++;
   }
 
-  fadeIn(wrap);
+  // Calculate credits & points (ignore COMPLE or zero-credit subjects)
+  const gp = gradePoints[grade] ?? 0;
+
+  if (credits > 0 && gp > 0) {
+    totalCredits += credits;
+    totalPoints += credits * gp;
+  }
+
+  const tr = document.createElement("tr");
+  tr.style.opacity = 0;
+  tr.innerHTML = `
+    <td>${r.subcode}</td>
+    <td>${r.subname}</td>
+    <td>${r.internals}</td>
+    <td>${r.grade}</td>
+    <td>${r.credits}</td>
+  `;
+  tbody.appendChild(tr);
+
+  // animation (if you already have this)
+  setTimeout(() => {
+    tr.style.transition = "opacity 0.3s ease, transform 0.3s ease";
+    tr.style.opacity = 1;
+    tr.style.transform = "translateY(0)";
+  }, idx * 60);
+});
+
+
+// Update counts
+clearedCountEl.textContent = cleared;
+failedCountEl.textContent = failed;
+
+// Overall status
+if (failed > 0) {
+  statusBadge.textContent = "FAIL";
+  statusBadge.className = "badge fail";
+} else {
+  statusBadge.textContent = "PASS";
+  statusBadge.className = "badge pass";
 }
+
+// Update total credits
+document.getElementById("totalCredits").textContent = totalCredits.toFixed(1);
+
+// Calculate SGPA
+let sgpa = 0;
+if (totalCredits > 0) {
+  sgpa = totalPoints / totalCredits;
+}
+document.getElementById("sgpa").textContent = sgpa.toFixed(2);
+
 
 // ========== EVENTS ==========
 btn.addEventListener("click", search);
@@ -206,3 +242,4 @@ window.addEventListener("load", loadSelectedPDF);
 hallInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter") search();
 });
+
