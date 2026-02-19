@@ -19,7 +19,11 @@ const failedCountEl = document.getElementById("failedCount");
 const printBtn = document.getElementById("printBtn");
 const pdfSelect = document.getElementById("pdfSelect");
 
-// ========== SIMPLE ANIMATION HELPERS ==========
+// Summary fields (make sure these IDs exist in HTML)
+const totalCreditsEl = document.getElementById("totalCredits");
+const sgpaEl = document.getElementById("sgpa");
+
+// ========== SIMPLE UI HELPERS ==========
 function showLoading() {
   btn.disabled = true;
   btn.textContent = "Loading PDF...";
@@ -74,21 +78,14 @@ async function loadSelectedPDF() {
       text += strings + "\n";
     }
 
-    // Regex based on your JNTUK result format:
-    // Htno (e.g., 24JD1A0201)
-    // Subcode (e.g., R2321012)
-    // Subname (text)
-    // Internals (number)
-    // Grade (F, D, E, ABSENT, COMPLE, S, etc.)
-    // Credits (number or decimal)
-  // Robust regex for JNTUK-style rows (handles AI, Entrepreneurship, COMPLE, ABSENT, labs, etc.)
-const rowRegex = /(\d{2}JD[0-9A-Z]{4,})\s+([A-Z0-9]+)\s+(.+?)\s+(\d+)\s+([A-Z]+)\s+(\d+(?:\.\d+)?)/g;
-
+    // Robust regex for JNTUK-style rows:
+    // Htno, Subcode (any), Subname (any text), Internals (number), Grade (A-Z), Credits (number/decimal)
+    const rowRegex = /(\d{2}JD[0-9A-Z]{4,})\s+([A-Z0-9]+)\s+(.+?)\s+(\d+)\s+([A-Z]+)\s+(\d+(?:\.\d+)?)/g;
 
     let match;
     while ((match = rowRegex.exec(text)) !== null) {
       allRows.push({
-        ht: match[1].toUpperCase(),
+        ht: String(match[1]).toUpperCase(),
         subcode: match[2],
         subname: match[3].trim(),
         internals: match[4],
@@ -100,7 +97,7 @@ const rowRegex = /(\d{2}JD[0-9A-Z]{4,})\s+([A-Z0-9]+)\s+(.+?)\s+(\d+)\s+([A-Z]+)
     console.log("Loaded:", url, "Rows:", allRows.length);
   } catch (err) {
     console.error("PDF load error:", err);
-    errorDiv.textContent = "Failed to load PDF. Please check the file.";
+    errorDiv.textContent = "Failed to load PDF. Please check the file name/path.";
     errorDiv.classList.remove("hidden");
     shake(errorDiv);
   } finally {
@@ -142,91 +139,98 @@ function search() {
 
   htShow.textContent = hall;
 
-let cleared = 0;
-let failed = 0;
-let totalCredits = 0;
-let totalPoints = 0;
+  let cleared = 0;
+  let failed = 0;
+  let totalCredits = 0;
+  let totalPoints = 0;
 
-// Grade to points map
-const gradePoints = {
-  "S": 10,
-  "A": 9,
-  "B": 8,
-  "C": 7,
-  "D": 6,
-  "E": 5,
-  "F": 0,
-  "ABSENT": 0,
-  "COMPLE": 0
-};
+  // Grade to points map
+  const gradePoints = {
+    "S": 10,
+    "A": 9,
+    "B": 8,
+    "C": 7,
+    "D": 6,
+    "E": 5,
+    "F": 0,
+    "ABSENT": 0,
+    "COMPLE": 0
+  };
 
+  rows.forEach((r, idx) => {
+    const grade = String(r.grade || "").trim().toUpperCase();
+    const credits = parseFloat(r.credits);
 
-rows.forEach((r, idx) => {
-  const grade = r.grade.toUpperCase();
-  const credits = parseFloat(r.credits) || 0;
+    // Count cleared / failed
+    if (grade === "F" || grade === "ABSENT") {
+      failed++;
+    } else {
+      cleared++;
+    }
 
-  // Count cleared / failed
-  if (grade === "F" || grade === "ABSENT") {
-    failed++;
+    // Grade points safely
+    const gp = Object.prototype.hasOwnProperty.call(gradePoints, grade)
+      ? gradePoints[grade]
+      : 0;
+
+    // Add credits & points (ignore non-numeric or zero-credit subjects)
+    if (!isNaN(credits) && credits > 0) {
+      totalCredits += credits;
+      totalPoints += credits * gp;
+    }
+
+    // Build table row
+    const tr = document.createElement("tr");
+    tr.style.opacity = 0;
+    tr.style.transform = "translateY(6px)";
+    tr.innerHTML = `
+      <td>${r.subcode}</td>
+      <td>${r.subname}</td>
+      <td>${r.internals}</td>
+      <td>${r.grade}</td>
+      <td>${r.credits}</td>
+    `;
+    tbody.appendChild(tr);
+
+    // Staggered animation
+    setTimeout(() => {
+      tr.style.transition = "opacity 0.3s ease, transform 0.3s ease";
+      tr.style.opacity = 1;
+      tr.style.transform = "translateY(0)";
+    }, idx * 60);
+  });
+
+  // Update counts
+  clearedCountEl.textContent = cleared;
+  failedCountEl.textContent = failed;
+
+  // Overall status
+  if (failed > 0) {
+    statusBadge.textContent = "FAIL";
+    statusBadge.className = "badge fail";
   } else {
-    cleared++;
+    statusBadge.textContent = "PASS";
+    statusBadge.className = "badge pass";
   }
 
-  // Calculate credits & points (ignore COMPLE or zero-credit subjects)
-  const gp = gradePoints[grade] ?? 0;
+  // Update total credits
+  if (totalCreditsEl) totalCreditsEl.textContent = totalCredits.toFixed(1);
 
-  if (credits > 0 && gp > 0) {
-    totalCredits += credits;
-    totalPoints += credits * gp;
+  // Calculate SGPA
+  let sgpa = 0;
+  if (totalCredits > 0) {
+    sgpa = totalPoints / totalCredits;
   }
+  if (sgpaEl) sgpaEl.textContent = sgpa.toFixed(2);
 
-  const tr = document.createElement("tr");
-  tr.style.opacity = 0;
-  tr.innerHTML = `
-    <td>${r.subcode}</td>
-    <td>${r.subname}</td>
-    <td>${r.internals}</td>
-    <td>${r.grade}</td>
-    <td>${r.credits}</td>
-  `;
-  tbody.appendChild(tr);
-
-  // animation (if you already have this)
-  setTimeout(() => {
-    tr.style.transition = "opacity 0.3s ease, transform 0.3s ease";
-    tr.style.opacity = 1;
-    tr.style.transform = "translateY(0)";
-  }, idx * 60);
-});
-
-
-// Update counts
-clearedCountEl.textContent = cleared;
-failedCountEl.textContent = failed;
-
-// Overall status
-if (failed > 0) {
-  statusBadge.textContent = "FAIL";
-  statusBadge.className = "badge fail";
-} else {
-  statusBadge.textContent = "PASS";
-  statusBadge.className = "badge pass";
+  // Show result
+  fadeIn(wrap);
 }
-
-// Update total credits
-document.getElementById("totalCredits").textContent = totalCredits.toFixed(1);
-
-// Calculate SGPA
-let sgpa = 0;
-if (totalCredits > 0) {
-  sgpa = totalPoints / totalCredits;
-}
-document.getElementById("sgpa").textContent = sgpa.toFixed(2);
-
 
 // ========== EVENTS ==========
 btn.addEventListener("click", search);
 printBtn.addEventListener("click", () => window.print());
+
 pdfSelect.addEventListener("change", () => {
   // Clear old result on PDF change
   wrap.classList.add("hidden");
@@ -242,4 +246,3 @@ window.addEventListener("load", loadSelectedPDF);
 hallInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter") search();
 });
-
